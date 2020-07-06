@@ -7,6 +7,7 @@ import { WebView } from 'react-native-webview';
 const getHTML = (svgContent, style) => `
 <html data-key="key-${style.height}-${style.width}">
   <head>
+    <meta name='viewport' content='initial-scale=1.0, maximum-scale=3.0, minimum-scale=0.5'/>
     <style>
       html, body {
         margin: 0;
@@ -76,7 +77,6 @@ class SvgImage extends Component {
           <WebView
             originWhitelist={['*']}
             scalesPageToFit={true}
-            useWebKit={false}
             style={[
               {
                 width: 200,
