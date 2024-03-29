@@ -1,18 +1,21 @@
 // @flow
 
-import React, { Component } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { WebView } from 'react-native-webview';
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, Platform } from "react-native";
+import { WebView } from "react-native-webview";
+
+const heightUnits = Platform.OS === "ios" ? "vh" : "%";
 
 const getHTML = (svgContent, style) => `
 <html data-key="key-${style.height}-${style.width}">
-  <head>
-    <style>
+    <head>
+        <meta name='viewport' content='initial-scale=1.0, maximum-scale=3.0, minimum-scale=0.5'/>
+        <style>
       html, body {
         margin: 0;
         padding: 0;
-        height: 100%;
-        width: 100%;
+        height: 100${heightUnits};
+        width: 100${heightUnits};
         overflow: hidden;
         background-color: transparent;
       }
@@ -24,83 +27,92 @@ const getHTML = (svgContent, style) => `
         width: 100%;
         overflow: hidden;
       }
-    </style>
+  </style>
   </head>
   <body>
     ${svgContent}
-  </body>
+</body>
 </html>
 `;
 
-class SvgImage extends Component {
-  state = { fetchingUrl: null, svgContent: null };
-  componentDidMount() {
-    this.doFetch(this.props);
-  }
-  componentDidUpdate(prevProps) {
-    const prevUri = prevProps.source && prevProps.source.uri;
-    const nextUri = this.props.source && this.props.source.uri;
+function SvgImage({
+    source,
+    onLoadStart,
+    onLoadEnd,
+    style,
+    containerStyle,
+    onError,
+}) {
+    const [svgContent, setSvgContent] = useState(null);
 
-    if (nextUri && prevUri !== nextUri) {
-      this.doFetch(this.props);
-    }
-  }
-  doFetch = async props => {
-    let uri = props.source && props.source.uri;
-    if (uri) {
-      props.onLoadStart && props.onLoadStart();
-      if (uri.match(/^data:image\/svg/)) {
-        const index = uri.indexOf('<svg');
-        this.setState({ fetchingUrl: uri, svgContent: uri.slice(index) });
-      } else {
-        try {
-          const res = await fetch(uri);
-          const text = await res.text();
-          this.setState({ fetchingUrl: uri, svgContent: text });
-        } catch (err) {
-          console.error('got error', err);
+    const uri = source && source.uri;
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        async function doFetch() {
+            if (uri) {
+                onLoadStart && onLoadStart();
+                if (uri.match(/^data:image\/svg/)) {
+                    const index = uri.indexOf("<svg");
+                    setSvgContent(uri.slice(index));
+                } else {
+                    try {
+                      const res = await fetch(uri, { signal });
+                      if (res.status != 200) {
+                        onError();
+                        return;
+                      }
+                        const text = await res.text();
+                        setSvgContent(text);
+                    } catch (err) {
+                        onError();
+                    }
+                }
+                onLoadEnd && onLoadEnd();
+            }
         }
-      }
-      props.onLoadEnd && props.onLoadEnd();
-    }
-  };
-  render() {
-    const props = this.props;
-    const { svgContent } = this.state;
-    if (svgContent) {
-      const flattenedStyle = StyleSheet.flatten(props.style) || {};
-      const html = getHTML(svgContent, flattenedStyle);
 
-      return (
-        <View pointerEvents="none" style={[props.style, props.containerStyle]}>
-          <WebView
-            originWhitelist={['*']}
-            scalesPageToFit={true}
-            useWebKit={false}
-            style={[
-              {
-                width: 200,
-                height: 100,
-                backgroundColor: 'transparent',
-              },
-              props.style,
-            ]}
-            scrollEnabled={false}
-            showsHorizontalScrollIndicator={false}
-            showsVerticalScrollIndicator={false}
-            source={{ html }}
-          />
-        </View>
-      );
+        doFetch();
+
+        return () => {
+            controller.abort();
+        };
+    }, [uri]);
+
+    if (svgContent) {
+        const flattenedStyle = StyleSheet.flatten(style) || {};
+        const html = getHTML(svgContent, flattenedStyle);
+
+        return (
+            <View
+                pointerEvents="none"
+                style={[style, containerStyle]}
+                renderToHardwareTextureAndroid={true}
+            >
+                <WebView
+                    originWhitelist={["*"]}
+                    scalesPageToFit={true}
+                    onError={ onError }
+                    style={[
+                        {
+                            width: 200,
+                            height: 100,
+                            backgroundColor: "transparent",
+                        },
+                        style,
+                    ]}
+                    scrollEnabled={false}
+                    showsHorizontalScrollIndicator={false}
+                    showsVerticalScrollIndicator={false}
+                    source={{ html }}
+                />
+            </View>
+        );
     } else {
-      return (
-        <View
-          pointerEvents="none"
-          style={[props.containerStyle, props.style]}
-        />
-      );
+        return <View pointerEvents="none" style={[containerStyle, style]} />;
     }
-  }
 }
 
 export default SvgImage;

@@ -2,7 +2,7 @@
   "name": "react-native-remote-svg",
   "description": "Load svg images in react-native",
   "repository": "seekshiva/react-native-remote-svg",
-  "version": "2.0.6",
+  "version": "2.0.11",
   "main": "index.js",
   "authors": [
     "Shiva Nandan"
@@ -10,8 +10,8 @@
   "license": "MIT",
   "peerDependencies": {
     "react": ">=15",
-    "react-native": ">=0.57 <0.59",
-    "react-native-webview": ">=5.2.4"
+    "react-native": ">=0.57",
+    "react-native-webview": "13.8.4"
   },
   "keywords": [
     "react-native",
