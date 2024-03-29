@@ -22,6 +22,7 @@ const MyImage = React.forwardRef((props, ref) => {
     if (!style.height) {
       style.height = source.height;
     }
+
   }
 
   return (
@@ -33,7 +34,6 @@ const MyImage = React.forwardRef((props, ref) => {
       {...props}
     />
   );
-
 });
 
 export default MyImage;
